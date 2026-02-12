@@ -18,6 +18,7 @@ class SistemaEmbarquesAndroid {
             localStorage.setItem('usuarios', JSON.stringify([]));
         }
         
+        // Verificar se há sessão ativa
         const ultimoUsuario = localStorage.getItem('ultimoUsuario');
         if (ultimoUsuario) {
             try {
@@ -34,8 +35,9 @@ class SistemaEmbarquesAndroid {
         const usuarioExistente = usuarios.find(u => u.id === usuario.id);
         if (usuarioExistente) {
             this.usuarioAtual = usuarioExistente;
+            // CORREÇÃO: Esconder auth e mostrar dashboard
             document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('dashboard').classList.add('active');
+            document.getElementById('dashboard').style.display = 'flex';
             this.atualizarInterfaceUsuario();
         }
     }
@@ -97,6 +99,11 @@ class SistemaEmbarquesAndroid {
             this.usuarioAtual = usuario;
             this.atualizarInterfaceUsuario();
             localStorage.setItem('ultimoUsuario', JSON.stringify(usuario));
+            
+            // CORREÇÃO: Esconder tela de login e mostrar dashboard
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'flex';
+            
             this.showToast(`Bem-vindo, ${usuario.fullname || usuario.username}!`, 'success');
             return true;
         }
@@ -109,8 +116,11 @@ class SistemaEmbarquesAndroid {
             this.salvarDadosUsuario();
             this.usuarioAtual = null;
             localStorage.removeItem('ultimoUsuario');
+            
+            // CORREÇÃO: Mostrar tela de login e esconder dashboard
             document.getElementById('auth-screen').style.display = 'flex';
-            document.getElementById('dashboard').classList.remove('active');
+            document.getElementById('dashboard').style.display = 'none';
+            
             this.showToast('Até logo!', 'success');
         }
     }
@@ -118,27 +128,41 @@ class SistemaEmbarquesAndroid {
     // ============ INTERFACE ============
     atualizarInterfaceUsuario() {
         if (this.usuarioAtual) {
-            document.getElementById('user-name').textContent = this.usuarioAtual.fullname || this.usuarioAtual.username;
-            document.getElementById('user-login').textContent = `@${this.usuarioAtual.username}`;
-            document.getElementById('current-user-badge').innerHTML = `<i class="fas fa-user"></i> ${this.usuarioAtual.fullname || this.usuarioAtual.username}`;
+            // Atualizar nome do usuário
+            const userNameEl = document.getElementById('user-name');
+            const userLoginEl = document.getElementById('user-login');
+            const userBadgeEl = document.getElementById('current-user-badge');
             
-            document.getElementById('profile-fullname').value = this.usuarioAtual.fullname || '';
-            document.getElementById('profile-username').value = this.usuarioAtual.username;
+            if (userNameEl) userNameEl.textContent = this.usuarioAtual.fullname || this.usuarioAtual.username;
+            if (userLoginEl) userLoginEl.textContent = `@${this.usuarioAtual.username}`;
+            if (userBadgeEl) userBadgeEl.innerHTML = `<i class="fas fa-user"></i> ${this.usuarioAtual.fullname || this.usuarioAtual.username}`;
             
+            // Preencher perfil
+            const profileFullname = document.getElementById('profile-fullname');
+            const profileUsername = document.getElementById('profile-username');
+            
+            if (profileFullname) profileFullname.value = this.usuarioAtual.fullname || '';
+            if (profileUsername) profileUsername.value = this.usuarioAtual.username;
+            
+            // Carregar configurações salvas
             if (this.usuarioAtual.configuracoes) {
-                if (this.usuarioAtual.configuracoes.nextEmbarqueDate) {
-                    document.getElementById('next-embarque-date').value = this.usuarioAtual.configuracoes.nextEmbarqueDate;
+                const nextDateInput = document.getElementById('next-embarque-date');
+                const diasInput = document.getElementById('dias-embarcado');
+                
+                if (this.usuarioAtual.configuracoes.nextEmbarqueDate && nextDateInput) {
+                    nextDateInput.value = this.usuarioAtual.configuracoes.nextEmbarqueDate;
                 }
-                if (this.usuarioAtual.configuracoes.diasEmbarcado) {
-                    document.getElementById('dias-embarcado').value = this.usuarioAtual.configuracoes.diasEmbarcado;
+                if (this.usuarioAtual.configuracoes.diasEmbarcado && diasInput) {
+                    diasInput.value = this.usuarioAtual.configuracoes.diasEmbarcado;
                 }
             }
             
+            // Inicializar componentes
             setTimeout(() => {
                 this.inicializarCalendario();
                 this.calcularProjecao2Anos();
                 this.atualizarEstatisticas();
-            }, 100);
+            }, 200);
         }
     }
 
@@ -185,9 +209,14 @@ class SistemaEmbarquesAndroid {
 
         this.renderTimeline(timeline);
         
-        document.getElementById('total-embarques').textContent = totalEmbarques;
-        document.getElementById('total-dias-mar').textContent = totalDiasMar;
-        document.getElementById('total-dias-casa').textContent = (24 * 30) - totalDiasMar;
+        // Atualizar estatísticas na UI
+        const totalEmbarquesEl = document.getElementById('total-embarques');
+        const totalDiasMarEl = document.getElementById('total-dias-mar');
+        const totalDiasCasaEl = document.getElementById('total-dias-casa');
+        
+        if (totalEmbarquesEl) totalEmbarquesEl.textContent = totalEmbarques;
+        if (totalDiasMarEl) totalDiasMarEl.textContent = totalDiasMar;
+        if (totalDiasCasaEl) totalDiasCasaEl.textContent = (24 * 30) - totalDiasMar;
 
         this.atualizarGraficos();
         this.gerarMiniCalendario();
@@ -329,9 +358,10 @@ class SistemaEmbarquesAndroid {
     }
 
     atualizarGraficoEmbarques() {
-        const ctx = document.getElementById('embarqueChart')?.getContext('2d');
-        if (!ctx) return;
+        const canvas = document.getElementById('embarqueChart');
+        if (!canvas) return;
         
+        const ctx = canvas.getContext('2d');
         if (this.embarqueChart) {
             this.embarqueChart.destroy();
         }
@@ -364,9 +394,10 @@ class SistemaEmbarquesAndroid {
     }
 
     atualizarGraficoProjecao() {
-        const ctx = document.getElementById('projecaoChart')?.getContext('2d');
-        if (!ctx) return;
+        const canvas = document.getElementById('projecaoChart');
+        if (!canvas) return;
         
+        const ctx = canvas.getContext('2d');
         if (this.projecaoChart) {
             this.projecaoChart.destroy();
         }
@@ -490,13 +521,17 @@ class SistemaEmbarquesAndroid {
 
     // ============ UI UTILS ============
     toggleSidebar() {
-        document.getElementById('sidebar')?.classList.add('active');
-        document.getElementById('sidebar-overlay')?.classList.add('active');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar) sidebar.classList.add('active');
+        if (overlay) overlay.classList.add('active');
     }
 
     closeSidebar() {
-        document.getElementById('sidebar')?.classList.remove('active');
-        document.getElementById('sidebar-overlay')?.classList.remove('active');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar) sidebar.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
     }
 
     showToast(message, type = 'info') {
@@ -529,11 +564,13 @@ function showTab(tabName) {
     forms.forEach(form => form.classList.remove('active'));
     
     if (tabName === 'login') {
-        tabs[0]?.classList.add('active');
-        document.getElementById('login-form')?.classList.add('active');
+        if (tabs[0]) tabs[0].classList.add('active');
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) loginForm.classList.add('active');
     } else {
-        tabs[1]?.classList.add('active');
-        document.getElementById('register-form')?.classList.add('active');
+        if (tabs[1]) tabs[1].classList.add('active');
+        const registerForm = document.getElementById('register-form');
+        if (registerForm) registerForm.classList.add('active');
     }
 }
 
@@ -545,6 +582,7 @@ function register() {
     if (username && password && fullname) {
         if (sistema.registrarUsuario(username, password, fullname)) {
             showTab('login');
+            // Limpar campos
             document.getElementById('reg-username').value = '';
             document.getElementById('reg-password').value = '';
             document.getElementById('reg-fullname').value = '';
@@ -559,8 +597,7 @@ function login() {
     const password = document.getElementById('login-password')?.value;
 
     if (sistema.login(username, password)) {
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('dashboard').classList.add('active');
+        // Limpar campos
         document.getElementById('login-username').value = '';
         document.getElementById('login-password').value = '';
     }
@@ -571,18 +608,23 @@ function logout() {
 }
 
 function showPage(pageName) {
+    // Remover active de todos
     document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
     
-    document.getElementById(`${pageName}-page`)?.classList.add('active');
+    // Ativar página selecionada
+    const selectedPage = document.getElementById(`${pageName}-page`);
+    if (selectedPage) selectedPage.classList.add('active');
     
+    // Ativar menu correspondente
     const navItems = document.querySelectorAll('.nav-item');
-    if (pageName === 'calendar') navItems[0]?.classList.add('active');
-    if (pageName === 'projecao') navItems[1]?.classList.add('active');
-    if (pageName === 'estatisticas') navItems[2]?.classList.add('active');
-    if (pageName === 'config') navItems[3]?.classList.add('active');
+    if (pageName === 'calendar' && navItems[0]) navItems[0].classList.add('active');
+    if (pageName === 'projecao' && navItems[1]) navItems[1].classList.add('active');
+    if (pageName === 'estatisticas' && navItems[2]) navItems[2].classList.add('active');
+    if (pageName === 'config' && navItems[3]) navItems[3].classList.add('active');
     
+    // Recarregar dados conforme página
     if (pageName === 'projecao') {
         setTimeout(() => {
             sistema.calcularProjecao2Anos();
@@ -619,4 +661,11 @@ function exportarDados() {
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     showTab('login');
+    
+    // Garantir que a tela de login esteja visível e dashboard escondido
+    const authScreen = document.getElementById('auth-screen');
+    const dashboard = document.getElementById('dashboard');
+    
+    if (authScreen) authScreen.style.display = 'flex';
+    if (dashboard) dashboard.style.display = 'none';
 });
