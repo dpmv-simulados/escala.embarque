@@ -2,82 +2,56 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Embarques® - Logística</title>
-    <!-- CSS Primeiro -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Meus Embarques</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css' rel='stylesheet' />
-    <!-- Scripts depois -->
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js' defer></script>
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/locales/pt-br.js' defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/locales/pt-br.js'></script>
 </head>
 <body>
-    <div class="app-container">
-        <!-- SPLASH SCREEN -->
-        <div id="splash-screen" class="splash-screen">
-            <div class="splash-content">
-                <i class="fas fa-ship"></i>
-                <h1>Embarques®</h1>
-                <p>Logística Marítima</p>
-                <div class="loader"></div>
-            </div>
-        </div>
-
-        <!-- TELA DE LOGIN -->
-        <div id="auth-screen" class="auth-screen">
-            <div class="auth-container">
-                <div class="brand-header">
+    <div class="app">
+        <!-- TELA DE CONFIGURAÇÃO INICIAL -->
+        <div id="config-screen" class="config-screen">
+            <div class="config-container">
+                <div class="logo">
                     <i class="fas fa-ship"></i>
-                    <h2>Embarques®</h2>
+                    <h1>Meus Embarques</h1>
+                    <p>Logística Marítima</p>
                 </div>
-                
-                <div class="auth-card">
-                    <div class="auth-tabs">
-                        <button class="tab-btn active" onclick="showTab('login')">Entrar</button>
-                        <button class="tab-btn" onclick="showTab('register')">Criar Conta</button>
+
+                <div class="config-card">
+                    <h2><i class="fas fa-anchor"></i> Configurar Meu Embarque</h2>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar"></i> Data do próximo embarque</label>
+                        <input type="date" id="data-embarque" class="input-field" required>
                     </div>
 
-                    <div id="login-form" class="auth-form active">
-                        <div class="input-group">
-                            <i class="fas fa-user"></i>
-                            <input type="text" id="login-username" placeholder="Usuário">
-                        </div>
-                        <div class="input-group">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" id="login-password" placeholder="Senha">
-                        </div>
-                        <button onclick="login()" class="btn btn-primary btn-block">
-                            <i class="fas fa-sign-in-alt"></i> Entrar
-                        </button>
+                    <div class="form-group">
+                        <label><i class="fas fa-clock"></i> Dias embarcado</label>
+                        <input type="number" id="dias-embarcado" min="1" max="90" placeholder="Ex: 15" class="input-field" required>
                     </div>
 
-                    <div id="register-form" class="auth-form">
-                        <div class="input-group">
-                            <i class="fas fa-user"></i>
-                            <input type="text" id="reg-username" placeholder="Usuário">
-                        </div>
-                        <div class="input-group">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" id="reg-password" placeholder="Senha">
-                        </div>
-                        <div class="input-group">
-                            <i class="fas fa-user-tag"></i>
-                            <input type="text" id="reg-fullname" placeholder="Nome Completo">
-                        </div>
-                        <button onclick="register()" class="btn btn-success btn-block">
-                            <i class="fas fa-user-plus"></i> Cadastrar
-                        </button>
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Seu nome (opcional)</label>
+                        <input type="text" id="nome-usuario" placeholder="Digite seu nome" class="input-field">
                     </div>
+
+                    <button onclick="iniciarSistema()" class="btn-primary btn-block">
+                        <i class="fas fa-check-circle"></i> Iniciar Calendário
+                    </button>
                 </div>
-                
-                <div class="version">v2.0 - Projeção 2 Anos</div>
+
+                <div class="info-text">
+                    <i class="fas fa-info-circle"></i> Seus dados ficam salvos no seu navegador
+                </div>
             </div>
         </div>
 
         <!-- DASHBOARD PRINCIPAL -->
-        <div id="dashboard" class="dashboard hidden">
+        <div id="dashboard" class="dashboard" style="display: none;">
             <!-- TOP BAR -->
             <div class="top-bar">
                 <button class="menu-toggle" onclick="toggleSidebar()">
@@ -85,152 +59,91 @@
                 </button>
                 <div class="app-logo">
                     <i class="fas fa-ship"></i>
-                    <span>Embarques®</span>
+                    <span>Meus Embarques</span>
                 </div>
-                <button class="user-menu">
-                    <i class="fas fa-ellipsis-v"></i>
+                <button class="user-menu" onclick="toggleSidebar()">
+                    <i class="fas fa-user-circle"></i>
                 </button>
             </div>
 
-            <!-- SIDEBAR OVERLAY -->
-            <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
-            
             <!-- SIDEBAR -->
+            <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
             <div id="sidebar" class="sidebar">
                 <div class="sidebar-header">
                     <i class="fas fa-ship"></i>
-                    <h3>Embarques®</h3>
+                    <h3>Meus Embarques</h3>
                     <button class="close-sidebar" onclick="closeSidebar()">&times;</button>
                 </div>
-                <div class="user-profile-sidebar">
-                    <div class="user-avatar">
-                        <i class="fas fa-user-circle"></i>
-                    </div>
-                    <h4 id="user-name">Carregando...</h4>
-                    <p id="user-login">@usuario</p>
+                
+                <div class="user-info-sidebar">
+                    <i class="fas fa-user-circle"></i>
+                    <h4 id="display-nome">Marítimo</h4>
+                    <p id="display-data">Próximo embarque: --/--/----</p>
                 </div>
+
                 <div class="sidebar-menu">
                     <button class="menu-item active" onclick="showPage('calendar'); closeSidebar()">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>Calendário</span>
+                        <i class="fas fa-calendar-alt"></i> Calendário
                     </button>
                     <button class="menu-item" onclick="showPage('projecao'); closeSidebar()">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Projeção 2 Anos</span>
-                    </button>
-                    <button class="menu-item" onclick="showPage('estatisticas'); closeSidebar()">
-                        <i class="fas fa-chart-pie"></i>
-                        <span>Estatísticas</span>
+                        <i class="fas fa-chart-line"></i> Projeção 2 Anos
                     </button>
                     <button class="menu-item" onclick="showPage('config'); closeSidebar()">
-                        <i class="fas fa-cog"></i>
-                        <span>Configurações</span>
+                        <i class="fas fa-cog"></i> Configurar
                     </button>
-                    <button class="menu-item logout" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Sair</span>
+                    <button class="menu-item" onclick="reconfigurar()">
+                        <i class="fas fa-sign-out-alt"></i> Reiniciar
                     </button>
                 </div>
             </div>
 
-            <!-- CONTEÚDO PRINCIPAL -->
+            <!-- CONTEÚDO -->
             <div class="main-content">
                 <!-- PÁGINA CALENDÁRIO -->
                 <div id="calendar-page" class="page active">
                     <div class="page-header">
-                        <h2><i class="fas fa-calendar-check"></i> Meus Embarques</h2>
-                        <span class="user-badge" id="current-user-badge"></span>
-                    </div>
-                    
-                    <div class="card config-card">
-                        <h3><i class="fas fa-anchor"></i> Configurar Embarque</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Data do embarque</label>
-                                <input type="date" id="next-embarque-date" class="input-field">
-                            </div>
-                            <div class="form-group">
-                                <label>Dias embarcado</label>
-                                <input type="number" id="dias-embarcado" min="1" max="90" placeholder="Ex: 15" class="input-field">
-                            </div>
-                        </div>
-                        <button onclick="salvarConfiguracao()" class="btn btn-primary btn-block">
-                            <i class="fas fa-save"></i> Salvar
-                        </button>
+                        <h2><i class="fas fa-calendar-check"></i> Meus Períodos Embarcados</h2>
                     </div>
 
-                    <div class="card calendar-card">
+                    <div class="card">
                         <div id="calendar"></div>
                     </div>
-                    
+
                     <div class="legenda">
-                        <span class="legenda-item">
-                            <span class="dot red"></span> Embarcado
-                        </span>
-                        <span class="legenda-item">
-                            <span class="dot blue"></span> Início
-                        </span>
-                        <span class="legenda-item">
-                            <span class="dot green"></span> Folga
-                        </span>
+                        <span class="legenda-item"><span class="dot red"></span> Embarcado</span>
+                        <span class="legenda-item"><span class="dot blue"></span> Início do embarque</span>
                     </div>
                 </div>
 
                 <!-- PÁGINA PROJEÇÃO 2 ANOS -->
                 <div id="projecao-page" class="page">
                     <div class="page-header">
-                        <h2><i class="fas fa-chart-line"></i> Projeção 2 Anos</h2>
+                        <h2><i class="fas fa-chart-line"></i> Projeção 24 Meses</h2>
                     </div>
 
                     <div class="stats-grid">
                         <div class="stat-card">
                             <i class="fas fa-ship"></i>
-                            <div class="stat-info">
-                                <span class="stat-label">Embarques</span>
-                                <span class="stat-value" id="total-embarques">0</span>
-                            </div>
+                            <span class="stat-label">Total de embarques</span>
+                            <span class="stat-value" id="total-embarques">0</span>
                         </div>
                         <div class="stat-card">
                             <i class="fas fa-water"></i>
-                            <div class="stat-info">
-                                <span class="stat-label">Dias no Mar</span>
-                                <span class="stat-value" id="total-dias-mar">0</span>
-                            </div>
+                            <span class="stat-label">Dias no mar</span>
+                            <span class="stat-value" id="total-dias-mar">0</span>
                         </div>
                         <div class="stat-card">
                             <i class="fas fa-home"></i>
-                            <div class="stat-info">
-                                <span class="stat-label">Dias em Casa</span>
-                                <span class="stat-value" id="total-dias-casa">0</span>
-                            </div>
+                            <span class="stat-label">Dias em casa</span>
+                            <span class="stat-value" id="total-dias-casa">0</span>
                         </div>
                     </div>
 
                     <div class="card">
-                        <h3>Linha do Tempo - 24 Meses</h3>
-                        <div class="timeline-wrapper">
+                        <h3>Linha do Tempo - Próximos 24 Meses</h3>
+                        <div class="timeline-scroll">
                             <div id="timeline-2anos" class="timeline-grid"></div>
                         </div>
-                    </div>
-
-                    <div class="card">
-                        <h3>Calendário Anual</h3>
-                        <div id="projection-minicalendar" class="mini-calendar-grid"></div>
-                    </div>
-                </div>
-
-                <!-- PÁGINA ESTATÍSTICAS -->
-                <div id="estatisticas-page" class="page">
-                    <div class="page-header">
-                        <h2><i class="fas fa-chart-pie"></i> Estatísticas</h2>
-                    </div>
-
-                    <div class="card">
-                        <canvas id="embarqueChart"></canvas>
-                    </div>
-
-                    <div class="card">
-                        <canvas id="projecaoChart"></canvas>
                     </div>
 
                     <div class="card">
@@ -239,46 +152,32 @@
                     </div>
                 </div>
 
-                <!-- PÁGINA CONFIGURAÇÕES -->
+                <!-- PÁGINA CONFIGURAÇÃO -->
                 <div id="config-page" class="page">
                     <div class="page-header">
-                        <h2><i class="fas fa-cog"></i> Configurações</h2>
+                        <h2><i class="fas fa-cog"></i> Configurar Embarque</h2>
                     </div>
 
                     <div class="card">
-                        <h3><i class="fas fa-user"></i> Meu Perfil</h3>
-                        <div class="input-group">
-                            <i class="fas fa-user"></i>
-                            <input type="text" id="profile-fullname" placeholder="Nome Completo" class="input-field">
+                        <h3><i class="fas fa-anchor"></i> Alterar dados</h3>
+                        
+                        <div class="form-group">
+                            <label>Data do próximo embarque</label>
+                            <input type="date" id="edit-data-embarque" class="input-field">
                         </div>
-                        <div class="input-group">
-                            <i class="fas fa-tag"></i>
-                            <input type="text" id="profile-username" disabled placeholder="Usuário" class="input-field">
-                        </div>
-                        <div class="input-group">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" id="profile-password" placeholder="Nova Senha" class="input-field">
-                        </div>
-                        <button onclick="atualizarPerfil()" class="btn btn-primary btn-block">
-                            <i class="fas fa-save"></i> Atualizar
-                        </button>
-                    </div>
 
-                    <div class="card">
-                        <h3><i class="fas fa-bell"></i> Notificações</h3>
-                        <div class="toggle-item">
-                            <span>Lembrar próximo embarque</span>
-                            <label class="switch">
-                                <input type="checkbox" id="notificacao-embarque" checked>
-                                <span class="slider"></span>
-                            </label>
+                        <div class="form-group">
+                            <label>Dias embarcado</label>
+                            <input type="number" id="edit-dias-embarcado" min="1" max="90" class="input-field">
                         </div>
-                    </div>
 
-                    <div class="card">
-                        <h3><i class="fas fa-database"></i> Backup</h3>
-                        <button onclick="exportarDados()" class="btn btn-secondary btn-block">
-                            <i class="fas fa-download"></i> Exportar Dados
+                        <div class="form-group">
+                            <label>Seu nome</label>
+                            <input type="text" id="edit-nome-usuario" class="input-field">
+                        </div>
+
+                        <button onclick="atualizarConfiguracao()" class="btn-primary btn-block">
+                            <i class="fas fa-save"></i> Salvar alterações
                         </button>
                     </div>
                 </div>
@@ -288,15 +187,11 @@
             <div class="bottom-nav">
                 <button class="nav-item active" onclick="showPage('calendar')">
                     <i class="fas fa-calendar"></i>
-                    <span>Hoje</span>
+                    <span>Calendário</span>
                 </button>
                 <button class="nav-item" onclick="showPage('projecao')">
                     <i class="fas fa-chart-line"></i>
                     <span>2 Anos</span>
-                </button>
-                <button class="nav-item" onclick="showPage('estatisticas')">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Stats</span>
                 </button>
                 <button class="nav-item" onclick="showPage('config')">
                     <i class="fas fa-cog"></i>
@@ -311,4 +206,4 @@
 
     <script src="script.js"></script>
 </body>
-    </html>
+</html>
