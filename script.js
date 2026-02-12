@@ -15,30 +15,25 @@ class SistemaEmbarquesAndroid {
 
     carregarDadosIniciais() {
         if (!localStorage.getItem('usuarios')) {
-            localStorage.setItem('usuarios', JSON.stringify([]));
-        }
-        
-        // Verificar se há sessão ativa
-        const ultimoUsuario = localStorage.getItem('ultimoUsuario');
-        if (ultimoUsuario) {
-            try {
-                const usuario = JSON.parse(ultimoUsuario);
-                this.autoLogin(usuario);
-            } catch (e) {
-                console.log('Sessão expirada');
-            }
-        }
-    }
-
-    autoLogin(usuario) {
-        const usuarios = JSON.parse(localStorage.getItem('usuarios'));
-        const usuarioExistente = usuarios.find(u => u.id === usuario.id);
-        if (usuarioExistente) {
-            this.usuarioAtual = usuarioExistente;
-            // CORREÇÃO: Esconder auth e mostrar dashboard
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'flex';
-            this.atualizarInterfaceUsuario();
+            // Criar usuário padrão para teste
+            const usuarios = [{
+                id: '1',
+                username: 'teste',
+                password: '123456',
+                fullname: 'Usuário Teste',
+                configuracoes: {
+                    nextEmbarqueDate: null,
+                    diasEmbarcado: null,
+                    notificacoes: true
+                },
+                estatisticas: {
+                    totalEmbarques: 0,
+                    totalDiasMar: 0,
+                    totalDiasCasa: 0
+                },
+                createdAt: new Date().toISOString()
+            }];
+            localStorage.setItem('usuarios', JSON.stringify(usuarios));
         }
     }
 
@@ -53,7 +48,6 @@ class SistemaEmbarquesAndroid {
         window.addEventListener('beforeunload', () => {
             if (this.usuarioAtual) {
                 this.salvarDadosUsuario();
-                localStorage.setItem('ultimoUsuario', JSON.stringify(this.usuarioAtual));
             }
         });
     }
@@ -97,13 +91,18 @@ class SistemaEmbarquesAndroid {
         
         if (usuario) {
             this.usuarioAtual = usuario;
+            
+            // CORREÇÃO CRÍTICA: Esconder auth e mostrar dashboard
+            const authScreen = document.getElementById('auth-screen');
+            const dashboard = document.getElementById('dashboard');
+            
+            if (authScreen) authScreen.style.display = 'none';
+            if (dashboard) {
+                dashboard.style.display = 'block'; // Mudamos para block ao invés de flex
+                dashboard.classList.add('active');
+            }
+            
             this.atualizarInterfaceUsuario();
-            localStorage.setItem('ultimoUsuario', JSON.stringify(usuario));
-            
-            // CORREÇÃO: Esconder tela de login e mostrar dashboard
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'flex';
-            
             this.showToast(`Bem-vindo, ${usuario.fullname || usuario.username}!`, 'success');
             return true;
         }
@@ -115,11 +114,15 @@ class SistemaEmbarquesAndroid {
         if (this.usuarioAtual) {
             this.salvarDadosUsuario();
             this.usuarioAtual = null;
-            localStorage.removeItem('ultimoUsuario');
             
-            // CORREÇÃO: Mostrar tela de login e esconder dashboard
-            document.getElementById('auth-screen').style.display = 'flex';
-            document.getElementById('dashboard').style.display = 'none';
+            const authScreen = document.getElementById('auth-screen');
+            const dashboard = document.getElementById('dashboard');
+            
+            if (authScreen) authScreen.style.display = 'flex';
+            if (dashboard) {
+                dashboard.style.display = 'none';
+                dashboard.classList.remove('active');
+            }
             
             this.showToast('Até logo!', 'success');
         }
@@ -127,42 +130,86 @@ class SistemaEmbarquesAndroid {
 
     // ============ INTERFACE ============
     atualizarInterfaceUsuario() {
-        if (this.usuarioAtual) {
-            // Atualizar nome do usuário
-            const userNameEl = document.getElementById('user-name');
-            const userLoginEl = document.getElementById('user-login');
-            const userBadgeEl = document.getElementById('current-user-badge');
+        if (!this.usuarioAtual) return;
+        
+        // Atualizar nome do usuário
+        const userNameEl = document.getElementById('user-name');
+        const userLoginEl = document.getElementById('user-login');
+        const userBadgeEl = document.getElementById('current-user-badge');
+        
+        if (userNameEl) userNameEl.textContent = this.usuarioAtual.fullname || this.usuarioAtual.username;
+        if (userLoginEl) userLoginEl.textContent = `@${this.usuarioAtual.username}`;
+        if (userBadgeEl) userBadgeEl.innerHTML = `<i class="fas fa-user"></i> ${this.usuarioAtual.fullname || this.usuarioAtual.username}`;
+        
+        // Preencher perfil
+        const profileFullname = document.getElementById('profile-fullname');
+        const profileUsername = document.getElementById('profile-username');
+        
+        if (profileFullname) profileFullname.value = this.usuarioAtual.fullname || '';
+        if (profileUsername) profileUsername.value = this.usuarioAtual.username;
+        
+        // Carregar configurações salvas
+        if (this.usuarioAtual.configuracoes) {
+            const nextDateInput = document.getElementById('next-embarque-date');
+            const diasInput = document.getElementById('dias-embarcado');
             
-            if (userNameEl) userNameEl.textContent = this.usuarioAtual.fullname || this.usuarioAtual.username;
-            if (userLoginEl) userLoginEl.textContent = `@${this.usuarioAtual.username}`;
-            if (userBadgeEl) userBadgeEl.innerHTML = `<i class="fas fa-user"></i> ${this.usuarioAtual.fullname || this.usuarioAtual.username}`;
-            
-            // Preencher perfil
-            const profileFullname = document.getElementById('profile-fullname');
-            const profileUsername = document.getElementById('profile-username');
-            
-            if (profileFullname) profileFullname.value = this.usuarioAtual.fullname || '';
-            if (profileUsername) profileUsername.value = this.usuarioAtual.username;
-            
-            // Carregar configurações salvas
-            if (this.usuarioAtual.configuracoes) {
-                const nextDateInput = document.getElementById('next-embarque-date');
-                const diasInput = document.getElementById('dias-embarcado');
-                
-                if (this.usuarioAtual.configuracoes.nextEmbarqueDate && nextDateInput) {
-                    nextDateInput.value = this.usuarioAtual.configuracoes.nextEmbarqueDate;
-                }
-                if (this.usuarioAtual.configuracoes.diasEmbarcado && diasInput) {
-                    diasInput.value = this.usuarioAtual.configuracoes.diasEmbarcado;
-                }
+            if (this.usuarioAtual.configuracoes.nextEmbarqueDate && nextDateInput) {
+                nextDateInput.value = this.usuarioAtual.configuracoes.nextEmbarqueDate;
             }
-            
-            // Inicializar componentes
+            if (this.usuarioAtual.configuracoes.diasEmbarcado && diasInput) {
+                diasInput.value = this.usuarioAtual.configuracoes.diasEmbarcado;
+            }
+        }
+        
+        // Mostrar página inicial
+        this.showPage('calendar');
+        
+        // Inicializar componentes
+        setTimeout(() => {
+            this.inicializarCalendario();
+            this.calcularProjecao2Anos();
+            this.atualizarEstatisticas();
+        }, 300);
+    }
+
+    showPage(pageName) {
+        // Remover active de todas as páginas
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
+        });
+        
+        // Ativar página selecionada
+        const selectedPage = document.getElementById(`${pageName}-page`);
+        if (selectedPage) {
+            selectedPage.classList.add('active');
+        }
+        
+        // Ativar menu correspondente
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        const navItems = document.querySelectorAll('.nav-item');
+        if (pageName === 'calendar' && navItems[0]) navItems[0].classList.add('active');
+        if (pageName === 'projecao' && navItems[1]) navItems[1].classList.add('active');
+        if (pageName === 'estatisticas' && navItems[2]) navItems[2].classList.add('active');
+        if (pageName === 'config' && navItems[3]) navItems[3].classList.add('active');
+        
+        // Recarregar dados conforme página
+        if (pageName === 'projecao') {
             setTimeout(() => {
-                this.inicializarCalendario();
                 this.calcularProjecao2Anos();
+                this.gerarMiniCalendario();
+            }, 100);
+        }
+        if (pageName === 'estatisticas') {
+            setTimeout(() => {
                 this.atualizarEstatisticas();
-            }, 200);
+            }, 100);
         }
     }
 
@@ -228,7 +275,7 @@ class SistemaEmbarquesAndroid {
         
         container.innerHTML = '';
         
-        timeline.forEach((mes) => {
+        timeline.slice(0, 12).forEach((mes) => {
             const monthDiv = document.createElement('div');
             monthDiv.className = 'timeline-month';
             
@@ -258,30 +305,27 @@ class SistemaEmbarquesAndroid {
         container.innerHTML = '';
         
         const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        const anos = [2025, 2026];
+        const ano = new Date().getFullYear();
         
-        anos.forEach(ano => {
-            meses.forEach((mes, index) => {
-                const monthDiv = document.createElement('div');
-                monthDiv.className = 'mini-month';
-                
-                const title = document.createElement('h4');
-                title.textContent = `${mes}/${ano}`;
-                
-                const days = document.createElement('div');
-                days.className = 'mini-days';
-                
-                for (let i = 0; i < 20; i++) {
-                    const day = document.createElement('div');
-                    day.className = 'day-block';
-                    if (i < 15) day.classList.add('embarcado');
-                    days.appendChild(day);
-                }
-                
-                monthDiv.appendChild(title);
-                monthDiv.appendChild(days);
-                container.appendChild(monthDiv);
-            });
+        meses.forEach((mes, index) => {
+            const monthDiv = document.createElement('div');
+            monthDiv.className = 'mini-month';
+            
+            const title = document.createElement('h4');
+            title.textContent = `${mes}/${ano}`;
+            
+            const days = document.createElement('div');
+            days.className = 'mini-days';
+            
+            for (let i = 0; i < 20; i++) {
+                const day = document.createElement('div');
+                day.className = 'day-block';
+                days.appendChild(day);
+            }
+            
+            monthDiv.appendChild(title);
+            monthDiv.appendChild(days);
+            container.appendChild(monthDiv);
         });
     }
 
@@ -316,28 +360,23 @@ class SistemaEmbarquesAndroid {
             const startDate = new Date(this.usuarioAtual.configuracoes.nextEmbarqueDate);
             const dias = this.usuarioAtual.configuracoes.diasEmbarcado;
             
-            for (let ciclo = 0; ciclo < 6; ciclo++) {
-                const cicloDate = new Date(startDate);
-                cicloDate.setMonth(startDate.getMonth() + ciclo);
+            eventos.push({
+                title: '🚢 Início do Embarque',
+                start: startDate.toISOString().split('T')[0],
+                color: '#2196F3',
+                textColor: 'white'
+            });
+
+            for (let i = 0; i < dias; i++) {
+                const eventDate = new Date(startDate);
+                eventDate.setDate(startDate.getDate() + i);
                 
                 eventos.push({
-                    title: '🚢 Início',
-                    start: cicloDate.toISOString().split('T')[0],
-                    color: '#2196F3',
+                    title: '⚓ Embarcado',
+                    start: eventDate.toISOString().split('T')[0],
+                    color: '#F44336',
                     textColor: 'white'
                 });
-
-                for (let i = 0; i < dias; i++) {
-                    const eventDate = new Date(cicloDate);
-                    eventDate.setDate(cicloDate.getDate() + i);
-                    
-                    eventos.push({
-                        title: '⚓ Embarcado',
-                        start: eventDate.toISOString().split('T')[0],
-                        color: '#F44336',
-                        textColor: 'white'
-                    });
-                }
             }
         }
 
@@ -402,8 +441,8 @@ class SistemaEmbarquesAndroid {
             this.projecaoChart.destroy();
         }
 
-        const diasMar = this.usuarioAtual?.estatisticas?.totalDiasMar || 360;
-        const diasCasa = this.usuarioAtual?.estatisticas?.totalDiasCasa || 360;
+        const diasMar = this.usuarioAtual?.estatisticas?.totalDiasMar || 180;
+        const diasCasa = this.usuarioAtual?.estatisticas?.totalDiasCasa || 185;
 
         this.projecaoChart = new Chart(ctx, {
             type: 'doughnut',
@@ -432,17 +471,18 @@ class SistemaEmbarquesAndroid {
         const anos = [2025, 2026];
         const diasEmbarcado = this.usuarioAtual?.configuracoes?.diasEmbarcado || 15;
         
-        let html = '';
+        let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">';
         anos.forEach(ano => {
             html += `
-                <div class="resumo-ano">
-                    <h4>${ano}</h4>
-                    <p>Embarques: 12</p>
-                    <p>Dias no mar: ${diasEmbarcado * 12}</p>
-                    <p>Dias em casa: ${365 - (diasEmbarcado * 12)}</p>
+                <div style="background: #F5F7FA; padding: 16px; border-radius: 12px; text-align: center;">
+                    <h4 style="margin-bottom: 8px; color: #263238;">${ano}</h4>
+                    <p style="color: #78909C; margin-bottom: 4px;">Embarques: 12</p>
+                    <p style="color: #78909C; margin-bottom: 4px;">Dias no mar: ${diasEmbarcado * 12}</p>
+                    <p style="color: #78909C;">Dias em casa: ${365 - (diasEmbarcado * 12)}</p>
                 </div>
             `;
         });
+        html += '</div>';
         
         container.innerHTML = html;
     }
@@ -497,7 +537,6 @@ class SistemaEmbarquesAndroid {
         if (index !== -1) {
             usuarios[index] = this.usuarioAtual;
             localStorage.setItem('usuarios', JSON.stringify(usuarios));
-            localStorage.setItem('ultimoUsuario', JSON.stringify(this.usuarioAtual));
         }
     }
 
@@ -582,7 +621,6 @@ function register() {
     if (username && password && fullname) {
         if (sistema.registrarUsuario(username, password, fullname)) {
             showTab('login');
-            // Limpar campos
             document.getElementById('reg-username').value = '';
             document.getElementById('reg-password').value = '';
             document.getElementById('reg-fullname').value = '';
@@ -595,12 +633,7 @@ function register() {
 function login() {
     const username = document.getElementById('login-username')?.value;
     const password = document.getElementById('login-password')?.value;
-
-    if (sistema.login(username, password)) {
-        // Limpar campos
-        document.getElementById('login-username').value = '';
-        document.getElementById('login-password').value = '';
-    }
+    sistema.login(username, password);
 }
 
 function logout() {
@@ -608,34 +641,7 @@ function logout() {
 }
 
 function showPage(pageName) {
-    // Remover active de todos
-    document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-    
-    // Ativar página selecionada
-    const selectedPage = document.getElementById(`${pageName}-page`);
-    if (selectedPage) selectedPage.classList.add('active');
-    
-    // Ativar menu correspondente
-    const navItems = document.querySelectorAll('.nav-item');
-    if (pageName === 'calendar' && navItems[0]) navItems[0].classList.add('active');
-    if (pageName === 'projecao' && navItems[1]) navItems[1].classList.add('active');
-    if (pageName === 'estatisticas' && navItems[2]) navItems[2].classList.add('active');
-    if (pageName === 'config' && navItems[3]) navItems[3].classList.add('active');
-    
-    // Recarregar dados conforme página
-    if (pageName === 'projecao') {
-        setTimeout(() => {
-            sistema.calcularProjecao2Anos();
-            sistema.gerarMiniCalendario();
-        }, 100);
-    }
-    if (pageName === 'estatisticas') {
-        setTimeout(() => {
-            sistema.atualizarEstatisticas();
-        }, 100);
-    }
+    sistema.showPage(pageName);
 }
 
 function toggleSidebar() {
@@ -662,7 +668,7 @@ function exportarDados() {
 document.addEventListener('DOMContentLoaded', () => {
     showTab('login');
     
-    // Garantir que a tela de login esteja visível e dashboard escondido
+    // Garantir estado inicial correto
     const authScreen = document.getElementById('auth-screen');
     const dashboard = document.getElementById('dashboard');
     
