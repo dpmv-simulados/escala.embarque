@@ -10,7 +10,7 @@ class SistemaEmbarquesAndroid {
     async init() {
         await this.carregarDadosIniciais();
         this.initEventListeners();
-        this.hideSplash();
+        setTimeout(() => this.hideSplash(), 1500);
     }
 
     carregarDadosIniciais() {
@@ -18,7 +18,6 @@ class SistemaEmbarquesAndroid {
             localStorage.setItem('usuarios', JSON.stringify([]));
         }
         
-        // Verificar última sessão
         const ultimoUsuario = localStorage.getItem('ultimoUsuario');
         if (ultimoUsuario) {
             try {
@@ -35,30 +34,20 @@ class SistemaEmbarquesAndroid {
         const usuarioExistente = usuarios.find(u => u.id === usuario.id);
         if (usuarioExistente) {
             this.usuarioAtual = usuarioExistente;
-            document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('dashboard').classList.add('active');
             this.atualizarInterfaceUsuario();
         }
     }
 
     hideSplash() {
-        setTimeout(() => {
-            document.getElementById('splash-screen').style.display = 'none';
-        }, 1500);
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
+            splash.style.display = 'none';
+        }
     }
 
     initEventListeners() {
-        // Fechar sidebar ao clicar no overlay
-        document.getElementById('sidebar-overlay').addEventListener('click', () => this.closeSidebar());
-        
-        // Prevenir zoom em inputs no Android
-        document.querySelectorAll('input').forEach(input => {
-            input.addEventListener('focus', () => {
-                document.body.style.zoom = '1';
-            });
-        });
-
-        // Salvar dados antes de sair
         window.addEventListener('beforeunload', () => {
             if (this.usuarioAtual) {
                 this.salvarDadosUsuario();
@@ -84,13 +73,12 @@ class SistemaEmbarquesAndroid {
             configuracoes: {
                 nextEmbarqueDate: null,
                 diasEmbarcado: null,
-                notificacoes: true,
-                diasFolga: 15 // padrão
+                notificacoes: true
             },
             estatisticas: {
                 totalEmbarques: 0,
                 totalDiasMar: 0,
-                historico: []
+                totalDiasCasa: 0
             },
             createdAt: new Date().toISOString()
         };
@@ -121,7 +109,7 @@ class SistemaEmbarquesAndroid {
             this.salvarDadosUsuario();
             this.usuarioAtual = null;
             localStorage.removeItem('ultimoUsuario');
-            document.getElementById('auth-screen').classList.add('active');
+            document.getElementById('auth-screen').style.display = 'flex';
             document.getElementById('dashboard').classList.remove('active');
             this.showToast('Até logo!', 'success');
         }
@@ -146,10 +134,11 @@ class SistemaEmbarquesAndroid {
                 }
             }
             
-            this.inicializarCalendario();
-            this.calcularProjecao2Anos();
-            this.atualizarEstatisticas();
-            this.gerarMiniCalendario();
+            setTimeout(() => {
+                this.inicializarCalendario();
+                this.calcularProjecao2Anos();
+                this.atualizarEstatisticas();
+            }, 100);
         }
     }
 
@@ -161,13 +150,11 @@ class SistemaEmbarquesAndroid {
 
         const startDate = new Date(this.usuarioAtual.configuracoes.nextEmbarqueDate);
         const diasEmbarcado = this.usuarioAtual.configuracoes.diasEmbarcado;
-        const diasFolga = 30 - diasEmbarcado; // Ciclo de 30 dias
         
         let totalEmbarques = 0;
         let totalDiasMar = 0;
         const timeline = [];
         
-        // Projeção para 24 meses
         for (let i = 0; i < 24; i++) {
             const mes = new Date(startDate);
             mes.setMonth(startDate.getMonth() + i);
@@ -189,7 +176,6 @@ class SistemaEmbarquesAndroid {
             });
         }
 
-        // Atualizar estatísticas
         this.usuarioAtual.estatisticas = {
             totalEmbarques,
             totalDiasMar,
@@ -197,22 +183,23 @@ class SistemaEmbarquesAndroid {
             timeline
         };
 
-        // Renderizar timeline
         this.renderTimeline(timeline);
         
-        // Atualizar cards de estatísticas
         document.getElementById('total-embarques').textContent = totalEmbarques;
         document.getElementById('total-dias-mar').textContent = totalDiasMar;
         document.getElementById('total-dias-casa').textContent = (24 * 30) - totalDiasMar;
 
         this.atualizarGraficos();
+        this.gerarMiniCalendario();
     }
 
     renderTimeline(timeline) {
         const container = document.getElementById('timeline-2anos');
+        if (!container) return;
+        
         container.innerHTML = '';
         
-        timeline.forEach((mes, index) => {
+        timeline.forEach((mes) => {
             const monthDiv = document.createElement('div');
             monthDiv.className = 'timeline-month';
             
@@ -223,7 +210,7 @@ class SistemaEmbarquesAndroid {
             const days = document.createElement('div');
             days.className = 'month-days';
             
-            mes.dias.forEach(dia => {
+            mes.dias.slice(0, 15).forEach(dia => {
                 const dayBlock = document.createElement('div');
                 dayBlock.className = `day-block ${dia.status}`;
                 days.appendChild(dayBlock);
@@ -237,6 +224,8 @@ class SistemaEmbarquesAndroid {
 
     gerarMiniCalendario() {
         const container = document.getElementById('projection-minicalendar');
+        if (!container) return;
+        
         container.innerHTML = '';
         
         const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -253,11 +242,10 @@ class SistemaEmbarquesAndroid {
                 const days = document.createElement('div');
                 days.className = 'mini-days';
                 
-                // Simular alguns dias
-                for (let i = 1; i <= 30; i++) {
+                for (let i = 0; i < 20; i++) {
                     const day = document.createElement('div');
                     day.className = 'day-block';
-                    if (i <= 15) day.className += ' embarcado';
+                    if (i < 15) day.classList.add('embarcado');
                     days.appendChild(day);
                 }
                 
@@ -268,107 +256,11 @@ class SistemaEmbarquesAndroid {
         });
     }
 
-    // ============ ESTATÍSTICAS E GRÁFICOS ============
-    atualizarEstatisticas() {
-        this.atualizarGraficos();
-        this.gerarResumoAnual();
-    }
-
-    atualizarGraficos() {
-        this.atualizarGraficoEmbarques();
-        this.atualizarGraficoProjecao();
-    }
-
-    atualizarGraficoEmbarques() {
-        const ctx = document.getElementById('embarqueChart').getContext('2d');
-        
-        if (this.embarqueChart) {
-            this.embarqueChart.destroy();
-        }
-
-        const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        const dados = meses.map(() => Math.floor(Math.random() * 20) + 10); // Simulado
-
-        this.embarqueChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: meses,
-                datasets: [{
-                    label: 'Dias Embarcados por Mês',
-                    data: dados,
-                    borderColor: '#2196F3',
-                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
-    }
-
-    atualizarGraficoProjecao() {
-        const ctx = document.getElementById('projecaoChart').getContext('2d');
-        
-        if (this.projecaoChart) {
-            this.projecaoChart.destroy();
-        }
-
-        this.projecaoChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Dias no Mar', 'Dias em Casa'],
-                datasets: [{
-                    data: [
-                        this.usuarioAtual?.estatisticas?.totalDiasMar || 360,
-                        this.usuarioAtual?.estatisticas?.totalDiasCasa || 360
-                    ],
-                    backgroundColor: ['#F44336', '#4CAF50'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-    }
-
-    gerarResumoAnual() {
-        const container = document.getElementById('resumo-anual');
-        const anos = [2025, 2026];
-        
-        let html = '<div class="resumo-grid">';
-        anos.forEach(ano => {
-            html += `
-                <div class="resumo-ano">
-                    <h4>${ano}</h4>
-                    <p>Embarques: 24</p>
-                    <p>Dias no mar: 180</p>
-                    <p>Dias em casa: 185</p>
-                </div>
-            `;
-        });
-        html += '</div>';
-        
-        container.innerHTML = html;
-    }
-
     // ============ CALENDÁRIO ============
     inicializarCalendario() {
         const calendarEl = document.getElementById('calendar');
+        if (!calendarEl) return;
+        
         calendarEl.innerHTML = '';
 
         this.calendar = new FullCalendar.Calendar(calendarEl, {
@@ -377,13 +269,12 @@ class SistemaEmbarquesAndroid {
             headerToolbar: {
                 left: 'prev,next',
                 center: 'title',
-                right: 'dayGridMonth,dayGridWeek'
+                right: 'dayGridMonth'
             },
             events: this.gerarEventosComProjecao(),
-            eventColor: '#F44336',
-            eventTextColor: 'white',
             height: 'auto',
-            contentHeight: 'auto'
+            contentHeight: 'auto',
+            aspectRatio: 1.5
         });
 
         this.calendar.render();
@@ -396,20 +287,17 @@ class SistemaEmbarquesAndroid {
             const startDate = new Date(this.usuarioAtual.configuracoes.nextEmbarqueDate);
             const dias = this.usuarioAtual.configuracoes.diasEmbarcado;
             
-            // Projetar 24 meses
-            for (let ciclo = 0; ciclo < 24; ciclo++) {
+            for (let ciclo = 0; ciclo < 6; ciclo++) {
                 const cicloDate = new Date(startDate);
                 cicloDate.setMonth(startDate.getMonth() + ciclo);
                 
-                // Evento do primeiro dia (azul)
                 eventos.push({
-                    title: '🚢 Embarque',
+                    title: '🚢 Início',
                     start: cicloDate.toISOString().split('T')[0],
                     color: '#2196F3',
                     textColor: 'white'
                 });
 
-                // Dias embarcados (vermelho)
                 for (let i = 0; i < dias; i++) {
                     const eventDate = new Date(cicloDate);
                     eventDate.setDate(cicloDate.getDate() + i);
@@ -427,10 +315,111 @@ class SistemaEmbarquesAndroid {
         return eventos;
     }
 
+    // ============ ESTATÍSTICAS ============
+    atualizarEstatisticas() {
+        this.atualizarGraficos();
+        this.gerarResumoAnual();
+    }
+
+    atualizarGraficos() {
+        setTimeout(() => {
+            this.atualizarGraficoEmbarques();
+            this.atualizarGraficoProjecao();
+        }, 200);
+    }
+
+    atualizarGraficoEmbarques() {
+        const ctx = document.getElementById('embarqueChart')?.getContext('2d');
+        if (!ctx) return;
+        
+        if (this.embarqueChart) {
+            this.embarqueChart.destroy();
+        }
+
+        const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const diasEmbarcado = this.usuarioAtual?.configuracoes?.diasEmbarcado || 15;
+        const dados = meses.map(() => diasEmbarcado);
+
+        this.embarqueChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: meses,
+                datasets: [{
+                    label: 'Dias Embarcados',
+                    data: dados,
+                    borderColor: '#2196F3',
+                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    atualizarGraficoProjecao() {
+        const ctx = document.getElementById('projecaoChart')?.getContext('2d');
+        if (!ctx) return;
+        
+        if (this.projecaoChart) {
+            this.projecaoChart.destroy();
+        }
+
+        const diasMar = this.usuarioAtual?.estatisticas?.totalDiasMar || 360;
+        const diasCasa = this.usuarioAtual?.estatisticas?.totalDiasCasa || 360;
+
+        this.projecaoChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Dias no Mar', 'Dias em Casa'],
+                datasets: [{
+                    data: [diasMar, diasCasa],
+                    backgroundColor: ['#F44336', '#4CAF50'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    gerarResumoAnual() {
+        const container = document.getElementById('resumo-anual');
+        if (!container) return;
+        
+        const anos = [2025, 2026];
+        const diasEmbarcado = this.usuarioAtual?.configuracoes?.diasEmbarcado || 15;
+        
+        let html = '';
+        anos.forEach(ano => {
+            html += `
+                <div class="resumo-ano">
+                    <h4>${ano}</h4>
+                    <p>Embarques: 12</p>
+                    <p>Dias no mar: ${diasEmbarcado * 12}</p>
+                    <p>Dias em casa: ${365 - (diasEmbarcado * 12)}</p>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+
     // ============ CONFIGURAÇÕES ============
     salvarConfiguracaoEmbarque() {
-        const nextDate = document.getElementById('next-embarque-date').value;
-        const dias = parseInt(document.getElementById('dias-embarcado').value);
+        const nextDate = document.getElementById('next-embarque-date')?.value;
+        const dias = parseInt(document.getElementById('dias-embarcado')?.value);
 
         if (!nextDate || !dias) {
             this.showToast('Preencha todos os campos!', 'error');
@@ -447,15 +436,15 @@ class SistemaEmbarquesAndroid {
             this.salvarDadosUsuario();
             this.inicializarCalendario();
             this.calcularProjecao2Anos();
-            this.showToast('Configuração salva com sucesso!', 'success');
+            this.showToast('Configuração salva!', 'success');
             return true;
         }
         return false;
     }
 
     atualizarPerfil() {
-        const nome = document.getElementById('profile-fullname').value;
-        const senha = document.getElementById('profile-password').value;
+        const nome = document.getElementById('profile-fullname')?.value;
+        const senha = document.getElementById('profile-password')?.value;
 
         if (nome) {
             this.usuarioAtual.fullname = nome;
@@ -492,36 +481,35 @@ class SistemaEmbarquesAndroid {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `embarques-backup-${this.usuarioAtual.username}.json`;
+        a.download = `embarques-${this.usuarioAtual.username}.json`;
         a.click();
+        URL.revokeObjectURL(url);
         
         this.showToast('Backup exportado!', 'success');
     }
 
     // ============ UI UTILS ============
     toggleSidebar() {
-        document.getElementById('sidebar').classList.add('active');
-        document.getElementById('sidebar-overlay').classList.add('active');
+        document.getElementById('sidebar')?.classList.add('active');
+        document.getElementById('sidebar-overlay')?.classList.add('active');
     }
 
     closeSidebar() {
-        document.getElementById('sidebar').classList.remove('active');
-        document.getElementById('sidebar-overlay').classList.remove('active');
-    }
-
-    toggleUserMenu() {
-        // Implementar menu de usuário rápido
+        document.getElementById('sidebar')?.classList.remove('active');
+        document.getElementById('sidebar-overlay')?.classList.remove('active');
     }
 
     showToast(message, type = 'info') {
         const toast = document.getElementById('toast');
+        if (!toast) return;
+        
         toast.textContent = message;
         toast.classList.remove('hidden');
         
         let bgColor = '#263238';
         if (type === 'success') bgColor = '#4CAF50';
         if (type === 'error') bgColor = '#F44336';
-        toast.style.background = bgColor;
+        toast.style.backgroundColor = bgColor;
         
         setTimeout(() => {
             toast.classList.add('hidden');
@@ -534,26 +522,32 @@ const sistema = new SistemaEmbarquesAndroid();
 
 // ============ FUNÇÕES GLOBAIS ============
 function showTab(tabName) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+    const tabs = document.querySelectorAll('.tab-btn');
+    const forms = document.querySelectorAll('.auth-form');
+    
+    tabs.forEach(btn => btn.classList.remove('active'));
+    forms.forEach(form => form.classList.remove('active'));
     
     if (tabName === 'login') {
-        document.querySelectorAll('.tab-btn')[0].classList.add('active');
-        document.getElementById('login-form').classList.add('active');
+        tabs[0]?.classList.add('active');
+        document.getElementById('login-form')?.classList.add('active');
     } else {
-        document.querySelectorAll('.tab-btn')[1].classList.add('active');
-        document.getElementById('register-form').classList.add('active');
+        tabs[1]?.classList.add('active');
+        document.getElementById('register-form')?.classList.add('active');
     }
 }
 
 function register() {
-    const username = document.getElementById('reg-username').value;
-    const password = document.getElementById('reg-password').value;
-    const fullname = document.getElementById('reg-fullname').value;
+    const username = document.getElementById('reg-username')?.value;
+    const password = document.getElementById('reg-password')?.value;
+    const fullname = document.getElementById('reg-fullname')?.value;
 
     if (username && password && fullname) {
         if (sistema.registrarUsuario(username, password, fullname)) {
             showTab('login');
+            document.getElementById('reg-username').value = '';
+            document.getElementById('reg-password').value = '';
+            document.getElementById('reg-fullname').value = '';
         }
     } else {
         sistema.showToast('Preencha todos os campos!', 'error');
@@ -561,11 +555,11 @@ function register() {
 }
 
 function login() {
-    const username = document.getElementById('login-username').value;
-    const password = document.getElementById('login-password').value;
+    const username = document.getElementById('login-username')?.value;
+    const password = document.getElementById('login-password')?.value;
 
     if (sistema.login(username, password)) {
-        document.getElementById('auth-screen').classList.remove('active');
+        document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('dashboard').classList.add('active');
         document.getElementById('login-username').value = '';
         document.getElementById('login-password').value = '';
@@ -577,37 +571,28 @@ function logout() {
 }
 
 function showPage(pageName) {
-    // Atualizar menu
     document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    
-    // Atualizar páginas
     document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
     
-    document.getElementById(`${pageName}-page`).classList.add('active');
+    document.getElementById(`${pageName}-page`)?.classList.add('active');
     
-    // Atualizar bottom nav
     const navItems = document.querySelectorAll('.nav-item');
-    if (pageName === 'calendar') navItems[0].classList.add('active');
-    if (pageName === 'projecao') navItems[1].classList.add('active');
-    if (pageName === 'estatisticas') navItems[2].classList.add('active');
-    if (pageName === 'config') navItems[3].classList.add('active');
+    if (pageName === 'calendar') navItems[0]?.classList.add('active');
+    if (pageName === 'projecao') navItems[1]?.classList.add('active');
+    if (pageName === 'estatisticas') navItems[2]?.classList.add('active');
+    if (pageName === 'config') navItems[3]?.classList.add('active');
     
-    // Atualizar sidebar
-    const sidebarItems = document.querySelectorAll('.sidebar-menu .menu-item');
-    sidebarItems.forEach(item => {
-        if (item.querySelector('span')?.textContent.toLowerCase().includes(pageName)) {
-            item.classList.add('active');
-        }
-    });
-    
-    // Recarregar dados conforme página
     if (pageName === 'projecao') {
-        sistema.calcularProjecao2Anos();
-        sistema.gerarMiniCalendario();
+        setTimeout(() => {
+            sistema.calcularProjecao2Anos();
+            sistema.gerarMiniCalendario();
+        }, 100);
     }
     if (pageName === 'estatisticas') {
-        sistema.atualizarEstatisticas();
+        setTimeout(() => {
+            sistema.atualizarEstatisticas();
+        }, 100);
     }
 }
 
